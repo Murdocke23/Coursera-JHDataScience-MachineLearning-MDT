@@ -1,0 +1,270 @@
+---
+title: "Practical Machine Learning Course Project - Classification on Quality of Exercise"
+author: "Murray Thompson"
+date: "April 2, 2017"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+```
+
+
+## Executive Summary
+
+Using data from the "Human Activity Recognition"" study by Ugulino et. al. (source information can be found at http://groupware.les.inf.puc-rio.br/har), we are trying to predict how an excercise is performed. (These data are shared under the Creative Commons CC BY-SA licence)
+
+In the study, participants were asked to 5 sets of 10 repetitions of a weight lifting exercise (curling a dumbell). In each set they were also asked execute the exercise in one of 5 prescribed manners, each set different from the other. This included:
+- Class A: correct form
+- Class B: throwing elbows to the front
+- Class C: lifting only halfway
+- Class D: lowering only halfway
+- Class E: throwing hips to the front
+
+To measure movement, sensors were attached to the dumbell, forearm, upper arm, and belt/torso.
+
+
+## Data Exploration and Cleanup
+
+
+```{r echo=TRUE}
+
+#get study data (assuming files are in current working directory)
+training_data <- read.csv("pml-training.csv")
+testing_data <- read.csv("pml-testing.csv")
+
+dim(training_data)
+dim(testing_data)
+
+```
+We have almost 20,000 training records and 20 test records, each with 160 fields.
+
+
+With a good number of training records, let's partition the data further to allow for model testing before validation:
+
+```{r echo=TRUE}
+
+library(caret)
+set.seed(1123)
+forTraining <- createDataPartition(training_data$classe, p=0.7, list=FALSE)
+training <- training_data[forTraining,]
+testing <- training_data[-forTraining,]
+validation <- testing_data #just to keep this clear from the original files :)
+
+
+```
+
+
+A code book describing the 160 fields in the data could not be found, but given a description of how the data were collected, 
+some values seem intuitive.
+
+Within the data, the final "Classe" field contains the manner of how the exercise was performed, which is the value we want to predict.
+
+```{r echo=TRUE}
+
+str(training[,c(160)])
+table(training$classe)
+
+```
+
+
+The first 7 fields appear to identify the data:
+
+```{r echo=TRUE}
+str(training[,c(1:7)]) #id fields
+
+```
+
+- X: unique record ID
+- user_name: name of person in study performing the exercise
+- raw_timestamp_part_1: sequential timestamp value (primary)
+- raw_timestamp_part_2: sequential timestamp value (secondary)
+- cvtd_timstamp: readable date/time value for when action was performed 
+- new_window: appears to be indicator of summary/final record in a repetition (yes = includes aggregate field values)
+- num_window: appears to be unique identifier value for each exercise repetition in the study
+
+As it represents an indentifier, and not a continuous variable, num_window should be a factor variable:
+
+```{r echo=TRUE}
+#ensure shared factor levels applied across training and test for num_window
+allWindowValues <- unique(union(training$num_window, testing$num_window))
+training$num_window <- factor(training$num_window, levels=allWindowValues)
+testing$num_window <- factor(testing$num_window, levels=allWindowValues)
+
+```
+
+
+
+The next large set fields represent data from the 4 sensors, sharing the same set of values for each sensor:
+
+```{r echo=TRUE}
+
+beltVars <- colnames(training[,c(8:45)]) #belt/torso
+upperarmVars <- colnames(training[,c(46:83)]) # upper arm
+dumbbellVars <- colnames(training[,c(84:121)]) #dumbbell
+forearmVars <- colnames(training[,c(122:159)]) #forearm
+
+sensorFields <- data.frame(beltVars=sort(beltVars),
+                           upperarmVars=sort(upperarmVars),
+                           dumbbellVars=sort(dumbbellVars),
+                           forearmVars=sort(forearmVars))
+
+print(sensorFields)
+
+```
+
+
+However, many fields have a considerable amount of blank values. 
+
+These often-blank fields seem to represent aggregate data for each repetition performed, and are therefore only populated for what seems the final data point of each repetition (given by the largest value of raw_timestamp_part_2 for each num_window value).
+
+```{r echo=TRUE}
+
+#get counts of NA values within each field
+na_count <- sapply(training, function(y) sum(length(which(is.na(y)))))
+
+#get names of fields with and without NA values
+alwaysPopulatedFields <- names(na_count[na_count == 0])
+
+
+```
+
+We also want to check for fields with little variance and are unlikely to affeect the model:
+
+```{r echo=TRUE}
+
+nzvFields <- nearZeroVar(training)
+nzvFieldNames <- colnames(training)[nzvFields]
+
+
+```
+
+
+
+
+## Model Selection
+
+
+We will first see if we can get reasonable model accuracy without applying a timeseries analysis, first only using sensor data as a whole.
+
+As we are aiming to predict method of exercise independent of any user, we will remove the identifier fields from the model fit, including the user.
+
+It's good we understand the summary values discovered in our exploratory work, but for our model, we'll only include fields without NA values, and those little variation
+
+
+```{r include=TRUE, echo=TRUE}
+
+#get list of always-populated fields, removing identifier/category fields
+modelFields <- alwaysPopulatedFields[-c(1:7)]
+
+modelFields <- modelFields[!(modelFields %in% nzvFieldNames)]
+
+```
+
+
+We'll look at fitting a model with both Random Forest (rf) and Boosting algorithms (gbm). 
+
+```{r include=TRUE, echo=TRUE}
+
+
+training.OnlyForModel <- training[, c(modelFields)]
+
+
+
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+
+# UNEXPECTED COMPUTER PROCESSING TIME REACHED... 
+# Unable to complete submission
+# I will be going computer shopping I guess
+
+# commented out r code below includes what I would proceed with... unfortunately with no output at this time.
+
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+# *******************************************************************************************
+
+set.seed(1123)
+# fitRF <- train(classe ~ ., 
+#                data=training.OnlyForModel, 
+#                method="rf")
+# 
+# save(fitRF, file = "pml_fitRF.RData")
+# 
+# 
+set.seed(1234)
+# fitGBM <- train(classe ~ .,
+#                 data=training.OnlyForModel, 
+#                 method="gbm")
+# 
+# save(fitGBM, file = "pml_fitGBM.RData")
+# 
+# 
+# 
+# predRF <- predict(fitRF, testing)
+# predGBM <- predict(fitGBM, testing)
+# 
+# confRF <- confusionMatrix(predRF, testing$classe)
+# confGBM <- confusionMatrix(predGBM, testing$classe)
+
+
+
+
+```
+
+
+###Random Forest result
+```{r include=TRUE, echo=TRUE}
+#confRF
+```
+
+
+###Boosting result
+```{r include=TRUE, echo=TRUE}
+#confGBM
+
+```
+
+
+I'll make the assumption that random forest wins out. 
+
+It is likely also accurate enough to forego any further model refinment
+
+
+
+
+## Prediction
+
+Assuming it worked well for the training set, this is what I would do to next:
+
+Check the selected model against the validation data set
+
+
+```{r include=TRUE, echo=TRUE}
+
+# predRF.Validation <- predict(fitRF, validation]
+
+
+```
+
+
+## Conclusion
+
+Running a random forest on a larger data set takes a while on an old computer....
+

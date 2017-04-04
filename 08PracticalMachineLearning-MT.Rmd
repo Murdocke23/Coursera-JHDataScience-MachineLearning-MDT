@@ -20,11 +20,12 @@ knitr::opts_chunk$set(echo = TRUE)
 Using data from the "Human Activity Recognition"" study by Ugulino et. al. (source information can be found at http://groupware.les.inf.puc-rio.br/har), we are trying to predict how an excercise is performed. (These data are shared under the Creative Commons CC BY-SA licence)
 
 In the study, participants were asked to 5 sets of 10 repetitions of a weight lifting exercise (curling a dumbell). In each set they were also asked execute the exercise in one of 5 prescribed manners, each set different from the other. This included:
-- Class A: correct form
-- Class B: throwing elbows to the front
-- Class C: lifting only halfway
-- Class D: lowering only halfway
-- Class E: throwing hips to the front
+
+* Class A: correct form
+* Class B: throwing elbows to the front
+* Class C: lifting only halfway
+* Class D: lowering only halfway
+* Class E: throwing hips to the front
 
 To measure movement, sensors were attached to the dumbell, forearm, upper arm, and belt/torso.
 
@@ -134,7 +135,7 @@ alwaysPopulatedFields <- names(na_count[na_count == 0])
 
 ```
 
-We also want to check for fields with little variance and are unlikely to affeect the model:
+We also want to check for fields with little variance and are unlikely to affect the model:
 
 ```{r echo=TRUE}
 
@@ -162,7 +163,13 @@ It's good we understand the summary values discovered in our exploratory work, b
 #get list of always-populated fields, removing identifier/category fields
 modelFields <- alwaysPopulatedFields[-c(1:7)]
 
+#further reduce fields to use as predictors in model, eliminating those with near zero variance
 modelFields <- modelFields[!(modelFields %in% nzvFieldNames)]
+
+#final field list to use
+length(modelFields)
+
+modelFields
 
 ```
 
@@ -171,59 +178,62 @@ We'll look at fitting a model with both Random Forest (rf) and Boosting algorith
 
 ```{r include=TRUE, echo=TRUE}
 
-
 training.OnlyForModel <- training[, c(modelFields)]
 
 
-
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
-
-# UNEXPECTED COMPUTER PROCESSING TIME REACHED... 
-# Unable to complete submission
-# I will be going computer shopping I guess
-
-# commented out r code below includes what I would proceed with... unfortunately with no output at this time.
-
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
-# *******************************************************************************************
+# RANDOM FOREST MODEL
 
 set.seed(1123)
-# fitRF <- train(classe ~ ., 
-#                data=training.OnlyForModel, 
-#                method="rf")
-# 
-# save(fitRF, file = "pml_fitRF.RData")
-# 
-# 
+
+# check if model created in previous run to avoid re-processing
+# if it hasn't been manually cleared from the current environment,
+# and likewise no data file related to it exists in the current workspace, then create the model
+
+if(!exists("fitRF")) {
+    filenameRF <- "pml_fitRF.RData"
+
+    if (file.exists(filenameRF)){
+        load(filenameRF)
+    } else {
+        fitRF <- train(classe ~ .,
+                     data=training.OnlyForModel,
+                     method="rf")
+      
+        save(fitRF, file = filenameRF)
+    }
+}
+
+
+# BOOSTING MODEL
+
 set.seed(1234)
-# fitGBM <- train(classe ~ .,
-#                 data=training.OnlyForModel, 
-#                 method="gbm")
-# 
-# save(fitGBM, file = "pml_fitGBM.RData")
-# 
-# 
-# 
-# predRF <- predict(fitRF, testing)
-# predGBM <- predict(fitGBM, testing)
-# 
-# confRF <- confusionMatrix(predRF, testing$classe)
-# confGBM <- confusionMatrix(predGBM, testing$classe)
+
+# check if model created in previous run to avoid re-processing
+# if it hasn't been manually cleared from the current environment,
+# and likewise no data file related to it exists in the current workspace, then create the model
+
+if(!exists("fitGBM")) {
+    filenameGBM <- "pml_fitGBM.RData"
+  
+    if (file.exists(filenameGBM)){
+        load(filenameGBM)
+    } else {
+      fitGBM <- train(classe ~ .,
+                      data=training.OnlyForModel,
+                      method="gbm")
+      
+      save(fitGBM, file = filenameGBM)
+    }
+}
 
 
+#run prediction against testing dataset
+predRF <- predict(fitRF, testing)
+predGBM <- predict(fitGBM, testing)
+
+#check model performance
+confRF <- confusionMatrix(predRF, testing$classe)
+confGBM <- confusionMatrix(predGBM, testing$classe)
 
 
 ```
@@ -231,40 +241,44 @@ set.seed(1234)
 
 ###Random Forest result
 ```{r include=TRUE, echo=TRUE}
-#confRF
+confRF
 ```
 
 
 ###Boosting result
 ```{r include=TRUE, echo=TRUE}
-#confGBM
+confGBM
 
 ```
 
 
-I'll make the assumption that random forest wins out. 
+It looks like both methods worked out, but that random forest wins out
 
-It is likely also accurate enough to forego any further model refinment
+It also seems accurate enough to forego any further model refinment.
 
 
 
 
 ## Prediction
 
-Assuming it worked well for the training set, this is what I would do to next:
-
 Check the selected model against the validation data set
 
 
 ```{r include=TRUE, echo=TRUE}
 
-# predRF.Validation <- predict(fitRF, validation]
+predRF.Validation <- predict(fitRF, validation)
 
+
+predRF.Validation
 
 ```
 
 
 ## Conclusion
 
-Running a random forest on a larger data set takes a while on an old computer....
+Creating a random forest model against the data appears to make a firaly accurate model when comparing against the testing set.
+
+I'm curious if a simpler model may apply based on summary fields and records (i.e. the average pitch, max yaw, total acceleration, etc, rather than every record captured throughout the exercise movement), but that is a much smaller set of records to test against, and this option was not explored.
+
+Another anecdote that was learn is that running a machine learning algorithms suc has random forest and boosting on even moderately larger data sets takes a while on an older computer...
 

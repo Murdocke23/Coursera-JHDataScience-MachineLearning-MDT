@@ -10,6 +10,7 @@ Date data provided included:
 * pml-testing_csv:a smaller set to use for final model prediction
 
 
+The assignment is to develop a machine-learning-based model that will predict the method of execution for an exercise.
 
 The R Markdown file is for processing the data, developing a model, and producing an output file via knitr. The HTML file is the output from that file.
 
